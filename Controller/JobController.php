@@ -15,6 +15,12 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class JobController extends AbstractController
 {
+    private $job_manager_repository;
+    public function __construct(JobManager $job_manager_repository)
+    {
+        $this->job_manager_repository = $job_manager_repository;
+
+    }
     /**
      * @Route("/", name = "jms_jobs_overview")
      */
@@ -156,6 +162,6 @@ class JobController extends AbstractController
 
     private function getRepo(): JobManager
     {
-        return $this->get('jms_job_queue.job_manager');
+        return $this->job_manager_repository;
     }
 }
