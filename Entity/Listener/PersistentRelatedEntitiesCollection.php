@@ -9,8 +9,8 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Collections\Expr\ClosureExpressionVisitor;
 use Doctrine\Common\Collections\Selectable;
+use Doctrine\Common\Persistence\ManagerRegistry;
 use JMS\JobQueueBundle\Entity\Job;
-use Symfony\Bridge\Doctrine\RegistryInterface;
 
 /**
  * Collection for persistent related entities.
@@ -25,7 +25,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     private $job;
     private $entities;
 
-    public function __construct(RegistryInterface $registry, Job $job)
+    public function __construct(ManagerRegistry $registry, Job $job)
     {
         $this->registry = $registry;
         $this->job = $job;
@@ -345,7 +345,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     {
         $this->initialize();
 
-        return ! $this->entities;
+        return !$this->entities;
     }
 
     /**
@@ -400,7 +400,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         $this->initialize();
 
         foreach ($this->entities as $key => $element) {
-            if ( ! $p($key, $element)) {
+            if (!$p($key, $element)) {
                 return false;
             }
         }
@@ -479,12 +479,12 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     {
         $this->initialize();
 
-        $expr     = $criteria->getWhereExpression();
+        $expr = $criteria->getWhereExpression();
         $filtered = $this->entities;
 
         if ($expr) {
-            $visitor  = new ClosureExpressionVisitor();
-            $filter   = $visitor->dispatch($expr);
+            $visitor = new ClosureExpressionVisitor();
+            $filter = $visitor->dispatch($expr);
             $filtered = array_filter($filtered, $filter);
         }
 
@@ -501,7 +501,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         $length = $criteria->getMaxResults();
 
         if ($offset || $length) {
-            $filtered = array_slice($filtered, (int)$offset, $length);
+            $filtered = array_slice($filtered, (int) $offset, $length);
         }
 
         return new ArrayCollection($filtered);
@@ -516,7 +516,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         $con = $this->registry->getManagerForClass('JMSJobQueueBundle:Job')->getConnection();
         $entitiesPerClass = array();
         $count = 0;
-        foreach ($con->query("SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = ".$this->job->getId()) as $data) {
+        foreach ($con->query("SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = " . $this->job->getId()) as $data) {
             $count += 1;
             $entitiesPerClass[$data['related_class']][] = json_decode($data['related_id'], true);
         }
@@ -531,16 +531,16 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         foreach ($entitiesPerClass as $className => $ids) {
             $em = $this->registry->getManagerForClass($className);
             $qb = $em->createQueryBuilder()
-                        ->select('e')->from($className, 'e');
+                ->select('e')->from($className, 'e');
 
             $i = 0;
             foreach ($ids as $id) {
                 $expr = null;
                 foreach ($id as $k => $v) {
                     if (null === $expr) {
-                        $expr = $qb->expr()->eq('e.'.$k, '?'.(++$i));
+                        $expr = $qb->expr()->eq('e.' . $k, '?' . (++$i));
                     } else {
-                        $expr = $qb->expr()->andX($expr, $qb->expr()->eq('e.'.$k, '?'.(++$i)));
+                        $expr = $qb->expr()->andX($expr, $qb->expr()->eq('e.' . $k, '?' . (++$i)));
                     }
 
                     $qb->setParameter($i, $v);
