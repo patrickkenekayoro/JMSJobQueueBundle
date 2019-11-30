@@ -220,8 +220,6 @@ class RunCommand extends Command
                 $restrictedQueues
             );
 
-            dump($pendingJob);
-
             if (null === $pendingJob) {
                 sleep($idleTime);
 
