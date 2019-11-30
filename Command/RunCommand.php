@@ -117,7 +117,7 @@ class RunCommand extends Command
 
         $workerName = $input->getOption('worker-name');
         if ($workerName === null) {
-            $workerName = gethostname().'-'.getmypid();
+            $workerName = gethostname() . '-' . getmypid();
         }
 
         if (strlen($workerName) > 50) {
@@ -188,7 +188,7 @@ class RunCommand extends Command
             $this->output->writeln('Entering shutdown sequence, waiting for running jobs to terminate...');
         }
 
-        while ( ! empty($this->runningJobs)) {
+        while (!empty($this->runningJobs)) {
             sleep(5);
             $this->checkRunningJobs();
         }
@@ -200,7 +200,7 @@ class RunCommand extends Command
 
     private function setupSignalHandlers()
     {
-        pcntl_signal(SIGTERM, function() {
+        pcntl_signal(SIGTERM, function () {
             if ($this->verbose) {
                 $this->output->writeln('Received SIGTERM signal.');
             }
@@ -219,6 +219,8 @@ class RunCommand extends Command
                 $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs),
                 $restrictedQueues
             );
+
+            dump($pendingJob);
 
             if (null === $pendingJob) {
                 sleep($idleTime);
@@ -263,7 +265,7 @@ class RunCommand extends Command
             $job = $jobDetails['job'];
 
             $queue = $job->getQueue();
-            if ( ! isset($runningJobsPerQueue[$queue])) {
+            if (!isset($runningJobsPerQueue[$queue])) {
                 $runningJobsPerQueue[$queue] = 0;
             }
             $runningJobsPerQueue[$queue] += 1;
@@ -281,25 +283,25 @@ class RunCommand extends Command
             $newErrorOutput = substr($data['process']->getErrorOutput(), $data['error_output_pointer']);
             $data['error_output_pointer'] += strlen($newErrorOutput);
 
-            if ( ! empty($newOutput)) {
+            if (!empty($newOutput)) {
                 $event = new NewOutputEvent($data['job'], $newOutput, NewOutputEvent::TYPE_STDOUT);
-                $this->dispatcher->dispatch('jms_job_queue.new_job_output', $event);
+                $this->dispatcher->dispatch($event, 'jms_job_queue.new_job_output');
                 $newOutput = $event->getNewOutput();
             }
 
-            if ( ! empty($newErrorOutput)) {
+            if (!empty($newErrorOutput)) {
                 $event = new NewOutputEvent($data['job'], $newErrorOutput, NewOutputEvent::TYPE_STDERR);
-                $this->dispatcher->dispatch('jms_job_queue.new_job_output', $event);
+                $this->dispatcher->dispatch($event, 'jms_job_queue.new_job_output');
                 $newErrorOutput = $event->getNewOutput();
             }
 
             if ($this->verbose) {
-                if ( ! empty($newOutput)) {
-                    $this->output->writeln('Job '.$data['job']->getId().': '.str_replace("\n", "\nJob ".$data['job']->getId().": ", $newOutput));
+                if (!empty($newOutput)) {
+                    $this->output->writeln('Job ' . $data['job']->getId() . ': ' . str_replace("\n", "\nJob " . $data['job']->getId() . ": ", $newOutput));
                 }
 
-                if ( ! empty($newErrorOutput)) {
-                    $this->output->writeln('Job '.$data['job']->getId().': '.str_replace("\n", "\nJob ".$data['job']->getId().": ", $newErrorOutput));
+                if (!empty($newErrorOutput)) {
+                    $this->output->writeln('Job ' . $data['job']->getId() . ': ' . str_replace("\n", "\nJob " . $data['job']->getId() . ": ", $newErrorOutput));
                 }
             }
 
@@ -309,7 +311,7 @@ class RunCommand extends Command
             if ($data['job']->getMaxRuntime() > 0 && $runtime > $data['job']->getMaxRuntime()) {
                 $data['process']->stop(5);
 
-                $this->output->writeln($data['job'].' terminated; maximum runtime exceeded.');
+                $this->output->writeln($data['job'] . ' terminated; maximum runtime exceeded.');
                 $this->jobManager->closeJob($data['job'], Job::STATE_TERMINATED);
                 unset($this->runningJobs[$i]);
 
@@ -328,7 +330,7 @@ class RunCommand extends Command
                 continue;
             }
 
-            $this->output->writeln($data['job'].' finished with exit code '.$data['process']->getExitCode().'.');
+            $this->output->writeln($data['job'] . ' finished with exit code ' . $data['process']->getExitCode() . '.');
 
             // If the Job exited with an exception, let's reload it so that we
             // get access to the stack trace. This might be useful for listeners.
@@ -350,7 +352,7 @@ class RunCommand extends Command
     private function startJob(Job $job)
     {
         $event = new StateChangeEvent($job, Job::STATE_RUNNING);
-        $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
+        $this->dispatcher->dispatch($event, 'jms_job_queue.job_state_change');
         $newState = $event->getNewState();
 
         if (Job::STATE_CANCELED === $newState) {
@@ -370,7 +372,7 @@ class RunCommand extends Command
 
         $args = $this->getBasicCommandLineArgs();
         $args[] = $job->getCommand();
-        $args[] = '--jms-job-id='.$job->getId();
+        $args[] = '--jms-job-id=' . $job->getId();
 
         foreach ($job->getArgs() as $arg) {
             $args[] = $arg;
@@ -401,7 +403,7 @@ class RunCommand extends Command
     private function cleanUpStaleJobs($workerName)
     {
         /** @var Job[] $staleJobs */
-        $staleJobs = $this->getEntityManager()->createQuery("SELECT j FROM ".Job::class." j WHERE j.state = :running AND (j.workerName = :worker OR j.workerName IS NULL)")
+        $staleJobs = $this->getEntityManager()->createQuery("SELECT j FROM " . Job::class . " j WHERE j.state = :running AND (j.workerName = :worker OR j.workerName IS NULL)")
             ->setParameter('worker', $workerName)
             ->setParameter('running', Job::STATE_RUNNING)
             ->getResult();
@@ -410,7 +412,7 @@ class RunCommand extends Command
             // If the original job has retry jobs, then one of them is still in
             // running state. We can skip the original job here as it will be
             // processed automatically once the retry job is processed.
-            if ( ! $job->isRetryJob() && count($job->getRetryJobs()) > 0) {
+            if (!$job->isRetryJob() && count($job->getRetryJobs()) > 0) {
                 continue;
             }
 
@@ -433,7 +435,7 @@ class RunCommand extends Command
         $args = array(
             PHP_BINARY,
             $_SERVER['SYMFONY_CONSOLE_FILE'] ?? $_SERVER['argv'][0],
-            '--env='.$this->env
+            '--env=' . $this->env,
         );
 
         if ($this->verbose) {
@@ -445,6 +447,6 @@ class RunCommand extends Command
 
     private function getEntityManager(): EntityManager
     {
-        return /** @var EntityManager */ $this->registry->getManagerForClass('JMSJobQueueBundle:Job');
+        return /** @var EntityManager */$this->registry->getManagerForClass('JMSJobQueueBundle:Job');
     }
 }
