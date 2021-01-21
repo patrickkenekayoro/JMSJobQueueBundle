@@ -2,7 +2,7 @@
 
 namespace JMS\JobQueueBundle\Command;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\Bundle\DoctrineBundle\Registry;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Query;
 use JMS\JobQueueBundle\Console\CronCommand;
@@ -23,7 +23,7 @@ class ScheduleCommand extends Command
     private $schedulers;
     private $cronCommands;
 
-    public function __construct(ManagerRegistry $managerRegistry, iterable $schedulers, iterable $cronCommands)
+    public function __construct(Registry $managerRegistry, iterable $schedulers, iterable $cronCommands)
     {
         parent::__construct();
 
@@ -94,7 +94,7 @@ class ScheduleCommand extends Command
         foreach ($jobSchedulers as $name => $scheduler) {
             $lastRunAt = $jobsLastRunAt[$name];
 
-            if ( ! $scheduler->shouldSchedule($name, $lastRunAt)) {
+            if (! $scheduler->shouldSchedule($name, $lastRunAt)) {
                 continue;
             }
 
@@ -156,7 +156,7 @@ class ScheduleCommand extends Command
 
         foreach ($this->cronCommands as $command) {
             /** @var CronCommand $command */
-            if ( ! $command instanceof Command) {
+            if (! $command instanceof Command) {
                 throw new \RuntimeException('CronCommand should only be used on Symfony commands.');
             }
 
@@ -176,7 +176,7 @@ class ScheduleCommand extends Command
         }
 
         foreach (array_keys($jobSchedulers) as $name) {
-            if ( ! isset($jobsLastRunAt[$name])) {
+            if (! isset($jobsLastRunAt[$name])) {
                 $job = new CronJob($name);
                 $em->persist($job);
                 $jobsLastRunAt[$name] = $job->getLastRunAt();
